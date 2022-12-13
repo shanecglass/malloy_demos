@@ -1,0 +1,27 @@
+{
+    "readme": "./political_ads_readme.md",
+    "title": "Google Political Ads",
+    "models": [
+      {
+        "id": "google_ads",
+        "path": "google_ads.malloy",
+        "sources": [
+          {
+            "title": "Advertiser Stats",
+            "sourceName": "advertiser_stats",
+            "description": "Detailed information about individual advertising committees and their advertising"
+          },
+          {
+            "title": "Latest Ad Impression",
+            "sourceName": "max_ad_date",
+            "description": "Determine the most recent impression on any ad by advertiser"
+          },
+          {
+            "title": "Creative Stats",
+            "sourceName": "creative_stats",
+            "description": "Detailed information about each individual ad, including the advertiser who ran it, spend range, and more"
+          }
+        ]
+      }
+    ]
+  }
