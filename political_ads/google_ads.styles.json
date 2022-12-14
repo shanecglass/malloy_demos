@@ -1,0 +1,8 @@
+{
+  "spend_over_time": {
+      "renderer": "line_chart"
+  },
+  "spend_by_media_type": {
+      "renderer": "bar_chart"
+  }
+}

@@ -1,90 +1,104 @@
 --! styles google_ads.styles.json
 
 source: advertiser_stats is table('bigquery-public-data.google_political_ads.advertiser_stats'){
-    primary_key: advertiser_id
-    dimension: fec_id is regexp_extract(public_ids_list, '^FEC ID (.*)$') {WHERE: public_ids_list ~ r'^FEC ID.*' AND public_ids_list ~ r'^FEC ID.*' != NULL }
+  where: public_ids_list ~ r'^FEC ID.*' AND public_ids_list ~ r'^FEC ID.*' != NULL
+  primary_key: advertiser_id
+  dimension: fec_id is regexp_extract(public_ids_list, '^FEC ID (.*)$')
 }
+
 source: advertiser_weekly_spend is table('bigquery-public-data.google_political_ads.advertiser_weekly_spend'){
-    dimension:
-        month_start_date is week_start_date.month
-    measure:
-        weekly_spend is spend_usd.sum()
-    query: spend_over_time is {
-        group_by: month_start_date
-        aggregate: weekly_spend
-    }
+  dimension:
+    month_start_date is week_start_date.month
+  measure:
+    weekly_spend is spend_usd.sum()
+  query: spend_over_time is {
+    group_by: month_start_date
+    aggregate: weekly_spend
+  }
 }
 
-sql: most_recent_ad is {
-    select: """
-        SELECT
-            advertiser_id,
-            advertiser_name,
-            MAX(date_range_end) AS latest_ad,
-        FROM `bigquery-public-data.google_political_ads.creative_stats`
-        GROUP BY
-            advertiser_id, advertiser_name
-"""}
-
-source: max_ad_date is from_sql(most_recent_ad) {
+source: creative_stats_base is table('bigquery-public-data.google_political_ads.creative_stats'){
 }
 
-source: creative_stats is table('bigquery-public-data.google_political_ads.creative_stats'){
-    join_one: advertiser_stats ON advertiser_id = advertiser_stats.advertiser_id AND advertiser_name = advertiser_stats.advertiser_name
-    join_many: max_ad_date ON advertiser_id = max_ad_date.advertiser_id AND advertiser_name = max_ad_date.advertiser_name
-    join_many: advertiser_weekly_spend ON advertiser_id = advertiser_weekly_spend.advertiser_id AND advertiser_name = advertiser_weekly_spend.advertiser_name
-    where: advertiser_stats.fec_id != NULL
-    dimension:
-        month_of_start is date_range_start.month
-    measure:
-        est_spend is sum((spend_range_min_usd + spend_range_max_usd)/2)
-        last_four_week_spend is est_spend { WHERE: date_range_end > max_ad_date.latest_ad.week - 4  }
-        total_ads is count(distinct ad_id)
+source: max_ad_date is from (creative_stats_base -> {
+  aggregate:
+    latest_ad is max(date_range_end)
+    earliest_ad is min(date_range_start)
+  group_by:
+    advertiser_id
+    advertiser_name
+})
+source: creative_stats is creative_stats_base {
+  join_one: advertiser_stats ON
+    advertiser_id = advertiser_stats.advertiser_id
+    AND advertiser_name = advertiser_stats.advertiser_name
 
-    query: spend_over_time is {
-        group_by: month_of_start
-        aggregate: est_spend
-    }
+  join_many: max_ad_date ON
+    advertiser_id = max_ad_date.advertiser_id
+    AND advertiser_name = max_ad_date.advertiser_name
 
-    query: spend_by_media_type is {
-        group_by: ad_type
-        aggregate: est_spend
-    }
-    query: percent_calc is {
-        group_by:
-            date_range_end
-            ad_url
-            ad_type
-            regions
-        aggregate:
-            est_spend
-            percent_of_total_all_ads is est_spend/all(est_spend)
-        }
+  join_many: advertiser_weekly_spend ON
+    advertiser_id = advertiser_weekly_spend.advertiser_id
+    AND advertiser_name = advertiser_weekly_spend.advertiser_name
 
-    query: recent_ads is percent_calc {
-        order_by: date_range_end desc
-        limit: 5
-    }
+  where: advertiser_stats.fec_id != NULL
 
-    query: top_lifetime_spend is percent_calc{
-        order_by: est_spend desc
-        limit: 5
-    }
-    query: top_line_dashboard is {
-    limit: 10
-    group_by: advertiser_name
-    order_by: last_four_week_spend desc
-    where: regions = 'US'
-    where: date_range_start.year ? @2021|@2022
+  dimension:
+    month_of_start is date_range_start.month
+  measure:
+    est_spend is
+      sum((spend_range_min_usd + spend_range_max_usd)/2)
+    last_four_week_spend is
+      est_spend { WHERE: date_range_end > max_ad_date.latest_ad.week - 4  }
+    total_ads is
+      count(distinct ad_id)
+
+  query: spend_over_time is {
+    group_by: month_of_start
+    aggregate: est_spend
+  }
+
+  query: spend_by_media_type is {
+    group_by: ad_type
+    aggregate: est_spend
+  }
+
+  query: percent_calc is {
+    group_by:
+      date_range_end
+      ad_url
+      ad_type
+      regions
     aggregate:
-        last_four_week_spend
-        lifetime_spend is est_spend
-        total_ads
-    nest: spend_over_time //line chart
-    nest: spend_by_media_type //bar chart
-    nest: recent_ads
-    nest: top_lifetime_spend
-}
+      est_spend
+      percent_of_total_all_ads is est_spend/all(est_spend)
+    }
+
+  query: recent_ads is percent_calc {
+    order_by: date_range_end desc
+    limit: 5
+  }
+
+  query: top_lifetime_spend is percent_calc{
+    order_by: est_spend desc
+    limit: 5
+  }
+
+  query: top_line_dashboard is {
+  limit: 10
+  group_by: advertiser_name
+  order_by: last_four_week_spend desc
+  where: regions = 'US'
+  where: date_range_start.year ? @2021|@2022
+  aggregate:
+    last_four_week_spend
+    lifetime_spend is est_spend
+    total_ads
+  nest: spend_over_time //line chart
+  nest: spend_by_media_type //bar chart
+  nest: recent_ads
+  nest: top_lifetime_spend
+  }
 }
 
 
