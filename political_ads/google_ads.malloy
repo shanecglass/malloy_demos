@@ -78,12 +78,10 @@ source: creative_stats is creative_stats_base {
 
   query: recent_ads is percent_calc {
     order_by: date_range_end desc
-    limit: 5
   }
 
   query: top_lifetime_spend is percent_calc{
     order_by: est_spend desc
-    limit: 5
   }
 
   query: top_line_dashboard is{
@@ -96,8 +94,14 @@ source: creative_stats is creative_stats_base {
       last_four_week_spend
       lifetime_spend is est_spend
       total_ads
-    nest: spend_over_time //line chart
-    nest: spend_by_media_type //bar chart
+    nest:
+      spend_over_time { //line chart
+        limit: 5
+      }
+    nest:
+      spend_by_media_type { //bar chart
+        limit: 5
+      }
     nest: recent_ads
     nest: top_lifetime_spend
     }
