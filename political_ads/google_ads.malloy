@@ -78,10 +78,12 @@ source: creative_stats is creative_stats_base {
 
   query: recent_ads is percent_calc {
     order_by: date_range_end desc
+    limit: 10
   }
 
   query: top_lifetime_spend is percent_calc{
     order_by: est_spend desc
+    limit: 10
   }
 
   query: top_line_dashboard is{

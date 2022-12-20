@@ -1,30 +1,11 @@
 {
-  "readme": "./political_ads_readme.md",
+  "readme": "political_ads_readme.md",
   "title": "Google Political Ads",
   "models": [
     {
     "id": "google_ads",
     "path": "google_ads.malloy",
-    "tables": [
-      {
-      "title": "Advertiser Stats",
-      "sourceName": "advertiser_stats",
-      "description": "Detailed information about individual advertising committees and their advertising",
-      "tables": ["advertiser_stats.parquet"]
-      },
-      {
-      "title": "Advertiser Weekly Spend",
-      "sourceName": "advertiser_weekly_spend",
-      "description": "Detailed information summarizing weekly spending by each committee",
-      "tables": ["advertiser_weekly_spend.parquet"]
-      },
-      {
-      "title": "Creative Stats",
-      "sourceName": "creative_stats",
-      "description": "Detailed information about each individual ad, including the advertiser who ran it, spend range, and more",
-      "tables": ["creative_stats.parquet"]
-      }
-    ]
+    "tables": ["creative_stats.parquet", "advertiser_stats.parquet", "advertiser_weekly_spend.parquet"]
     }
   ]
-  }
+}
