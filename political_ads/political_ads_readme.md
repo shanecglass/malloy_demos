@@ -24,12 +24,12 @@ renderer="dashboard"
 ## Deep dive queries
 Use the queries below to dig into further detail about a specific topic that interests you. Add filters to see a more granular slice of the queries provided.
 <!-- malloy-query
-name="Spend over time"
-description="Explore how ad spending has evolved month over month. Add a GROUP BY to see this for each individual advertiser"
+name="Advertiser spend over time"
+description="Explore how each advertiser's spend has evolved month over month."
 model="./google_ads.malloy"
 -->
 ```malloy
-  query: creative_stats -> spend_over_time
+  query: creative_stats -> advertiser_spend_over_time
 ```
 
 <!-- malloy-query

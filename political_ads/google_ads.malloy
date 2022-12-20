@@ -82,8 +82,15 @@ source: creative_stats is creative_stats_base {
     limit: 10
   }
 
-  query: top_lifetime_spend is percent_calc{
+  query: top_lifetime_spend is percent_calc {
     order_by: est_spend desc
+    limit: 10
+  }
+
+  query: advertiser_spend_over_time is {
+    group_by: advertiser_name
+    aggregate: est_spend
+    nest: spend_over_time
     limit: 10
   }
 
