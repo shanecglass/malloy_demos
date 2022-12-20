@@ -47,10 +47,7 @@ description="The ten most recent ads that generated at least 1 impression"
 model="./google_ads.malloy"
 -->
 ```malloy
-  query: creative_stats -> recent_ads + {
-    group_by: advertiser_name
-    limit: 10
-  }
+  query: creative_stats -> recent_ads
 ```
 
 <!-- malloy-query
@@ -59,8 +56,5 @@ description="The ten expensive ads that generated at least 1 impression. Add a f
 model="./google_ads.malloy"
 -->
 ```malloy
-  query: creative_stats -> top_lifetime_spend + {
-    group_by: advertiser_name
-    limit: 10
-  }
+  query: creative_stats -> top_lifetime_spend
 ```
