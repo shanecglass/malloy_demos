@@ -1,5 +1,7 @@
 --! styles google_ads.styles.json
+--To use this with BigQuery instead of DuckDB, simply replace "duckdb:" with "bigquery-public-data.google_political_ads" in each source
 
+--Define the advertiser stats source and filter it to only include
 source: advertiser_stats is table('duckdb:advertiser_stats.parquet'){
   where: public_ids_list ~ r'^FEC ID.*' AND public_ids_list ~ r'^FEC ID.*' != NULL
   primary_key: advertiser_id
