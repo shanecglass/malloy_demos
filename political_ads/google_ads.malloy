@@ -1,12 +1,12 @@
 --! styles google_ads.styles.json
 
-source: advertiser_stats is table('bigquery-public-data.google_political_ads.advertiser_stats'){
+source: advertiser_stats is table('duckdb:advertiser_stats.parquet'){
   where: public_ids_list ~ r'^FEC ID.*' AND public_ids_list ~ r'^FEC ID.*' != NULL
   primary_key: advertiser_id
   dimension: fec_id is regexp_extract(public_ids_list, '^FEC ID (.*)$')
 }
 
-source: advertiser_weekly_spend is table('bigquery-public-data.google_political_ads.advertiser_weekly_spend'){
+source: advertiser_weekly_spend is table('duckdb:advertiser_weekly_spend.parquet'){
   dimension:
     month_start_date is week_start_date.month
   measure:
@@ -17,7 +17,7 @@ source: advertiser_weekly_spend is table('bigquery-public-data.google_political_
   }
 }
 
-source: creative_stats_base is table('bigquery-public-data.google_political_ads.creative_stats'){
+source: creative_stats_base is table('duckdb:creative_stats.parquet'){
 }
 
 source: max_ad_date is from (creative_stats_base -> {
