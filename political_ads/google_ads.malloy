@@ -84,21 +84,7 @@ source: creative_stats is creative_stats_base {
     limit: 5
   }
 
-  query: top_line_dashboard is {
-  limit: 10
-  group_by: advertiser_name
-  order_by: last_four_week_spend desc
-  where: regions = 'US'
-  where: date_range_start.year ? @2021|@2022
-  aggregate:
-    last_four_week_spend
-    lifetime_spend is est_spend
-    total_ads
-  nest: spend_over_time //line chart
-  nest: spend_by_media_type //bar chart
-  nest: recent_ads
-  nest: top_lifetime_spend
-  }
+
 }
 
 
