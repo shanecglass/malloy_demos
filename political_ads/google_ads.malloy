@@ -3,9 +3,10 @@
 
 --Define the advertiser stats source and filter it to only include
 source: advertiser_stats is table('duckdb:advertiser_stats.parquet'){
-  where: public_ids_list ~ r'^FEC ID.*' AND public_ids_list ~ r'^FEC ID.*' != NULL
-  primary_key: advertiser_id
   dimension: fec_id is regexp_extract(public_ids_list, '^FEC ID (.*)$')
+  where:
+    fec_id != NULL
+  primary_key: advertiser_id
 }
 
 source: advertiser_weekly_spend is table('duckdb:advertiser_weekly_spend.parquet'){

@@ -25,7 +25,7 @@ renderer="dashboard"
 Use the queries below to dig into further detail about a specific topic that interests you. Add filters to see a more granular slice of the queries provided.
 <!-- malloy-query
 name="Spend over time"
-description="Explore how ad spending has evolved month over month"
+description="Explore how ad spending has evolved month over month. Add a GROUP BY to see this for each individual advertiser"
 model="./google_ads.malloy"
 -->
 ```malloy
@@ -34,7 +34,7 @@ model="./google_ads.malloy"
 
 <!-- malloy-query
 name="Spend by media type"
-description="Explore how ad spending broke down by ad type"
+description="Explore how ad spending broke down by ad type. Add a GROUP BY to see this for each individual advertiser"
 model="./google_ads.malloy"
 -->
 ```malloy
