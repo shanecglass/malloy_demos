@@ -1,0 +1,8 @@
+[
+  {
+    "name": "Google Political Ads",
+    "dataTables": ["advertiser_stats.parquet","advertiser_weekly_spend.parquet","creative_stats.parquet"],
+    "modelPath": "./google_ads.malloy",
+    "queryPath": "./google_ads_queries.malloy"
+  }
+]
