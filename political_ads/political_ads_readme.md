@@ -6,7 +6,7 @@ Google supports responsible political advertising in the United States through s
 
 <!-- malloy-query
 name="Top Line Dashboard"
-description="Creative Stats Dashboard"
+description="Creative Stats Summary Dashboard"
 model="./google_ads.malloy"
 renderer="dashboard"
 -->
