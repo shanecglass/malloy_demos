@@ -1,11 +1,11 @@
 {
-  "readme": "./political_ads_readme.md",
+  "readme": "political_ads_readme.md",
   "title": "Google Political Ads",
   "models": [
     {
     "id": "google_ads",
-    "path": "./google_ads.malloy",
-    "tables": ["./creative_stats.parquet", "./advertiser_stats.parquet", "./advertiser_weekly_spend.parquet"]
+    "path": "google_ads.malloy",
+    "tables": ["creative_stats.parquet", "advertiser_stats.parquet", "advertiser_weekly_spend.parquet"]
     }
   ]
 }
