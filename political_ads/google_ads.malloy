@@ -105,15 +105,15 @@ source: creative_stats is creative_stats_base {
       lifetime_spend is est_spend
       total_ads
     nest:
-      spend_over_time { //line chart
-        limit: 5
-      }
+      spend_over_time //line chart
     nest:
-      spend_by_media_type { //bar chart
+      spend_by_media_type //bar chart
+    nest: recent_ads {
         limit: 5
       }
-    nest: recent_ads
-    nest: top_lifetime_spend
+    nest: top_lifetime_spend{
+        limit: 5
+      }
     }
   }
 
