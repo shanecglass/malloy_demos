@@ -12,12 +12,6 @@ source: advertiser_stats is table('duckdb:advertiser_stats.parquet'){
 source: advertiser_weekly_spend is table('duckdb:advertiser_weekly_spend.parquet'){
   dimension:
     month_start_date is week_start_date.month
-  measure:
-    weekly_spend is spend_usd.sum()
-  query: spend_over_time is {
-    group_by: month_start_date
-    aggregate: weekly_spend
-  }
 }
 
 source: creative_stats_base is table('duckdb:creative_stats.parquet'){
@@ -95,7 +89,7 @@ source: creative_stats is creative_stats_base {
   }
 
   query: top_line_dashboard is{
-    limit: 10
+    // limit: 10
     group_by: advertiser_name
     order_by: last_four_week_spend desc
     where: regions = 'US'
