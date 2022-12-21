@@ -10,7 +10,7 @@ See the [Malloy source code](https://github.com/lloydtabb/baby_names/)
 
 ## Summary dashboard
 
-Use the dashboard below to get a summary of political ad purchases by advertiser.
+Use the dashboard below to get a summary of political ad purchases by advertiser during the 2022 Midterm cycle.
 
 <!-- malloy-query
 name="Summary Dashboard"

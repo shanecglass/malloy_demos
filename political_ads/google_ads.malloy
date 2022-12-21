@@ -56,10 +56,6 @@ source: creative_stats is creative_stats_base {
     total_ads is
       count(distinct ad_id)
 
-    query: lifetime_spend is {
-      aggregate: est_spend
-  }
-
   query: spend_over_time is {
     group_by: month_of_start
     aggregate: est_spend
@@ -106,7 +102,7 @@ source: creative_stats is creative_stats_base {
     where: date_range_start.year ? @2021|@2022
     aggregate:
       last_four_week_spend
-      lifetime_spend
+      lifetime_spend is est_spend
       total_ads
     nest:
       spend_over_time //line chart
