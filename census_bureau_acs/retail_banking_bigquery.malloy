@@ -12,6 +12,8 @@ source: bank_locations is table('scg-malloy-demos.retail_banking_demo.fdic_locat
     AND county_fips_code = '49035'
 }
 
+source: utah_census_tracts is table('scg-malloy-demos.retail_banking_demo.census_tracts_utah')
+
 sql: bank_location_demographics is {
   select: """
     SELECT
@@ -29,7 +31,11 @@ sql: bank_location_demographics is {
         }
       }%) demographics
     JOIN
-      `scg-malloy-demos.retail_banking_demo.census_tracts_utah` tracts ON tracts.geo_id = demographics.geo_id
+      %(
+        utah_census_tracts -> {
+          project:*
+        }
+      )% tracts ON geo_id = demographics.geo_id
     WHERE
       ST_DWITHIN(tracts.tract_geom, bank_locations.location_geom, 8047)
   """
