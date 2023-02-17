@@ -24,20 +24,21 @@ sql: bank_location_demographics is {
         bank_locations ->{
           project: *
         }
-      }%) bank_locations,
+      }%
+      ) bank_locations,
       (%{
         demographics ->{
           project: *
         }
       }%) demographics
     JOIN
-      %(
+      (%{
         utah_census_tracts -> {
-          project:*
+          project: *
         }
-      )% tracts ON geo_id = demographics.geo_id
+      }%) tracts ON tracts.geo_id = demographics.geo_id
     WHERE
-      ST_DWITHIN(tracts.tract_geom, bank_locations.location_geom, 8047)
+      ST_DWITHIN(ST_GEOGPOINT(CAST(tracts.internal_point_lon AS FLOAT64), CAST(tracts.internal_point_lat AS FLOAT64)), ST_GEOGPOINT(bank_locations.longitude, bank_locations.latitude), 8047)
   """
 }
 
