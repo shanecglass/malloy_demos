@@ -1,0 +1,36 @@
+source: demographics is table('bigquery-public-data.census_bureau_acs.censustract_2020_5yr'){
+  primary_key: geo_id
+  where:
+    geo_id ~ '49035%'
+}
+
+source: bank_locations is table('scg-malloy-demos.retail_banking_demo.fdic_locations')
+{
+  primary_key: fdic_certificate_number
+  where:
+    state = 'UT'
+    AND county_fips_code = '49035'
+}
+
+sql: bank_location_demographics is {
+  select: """
+    SELECT
+      demographics.*,
+      bank_locations.*
+    FROM (
+      %{
+        bank_locations ->{
+          project: *
+        }
+      }%) bank_locations,
+      (%{
+        demographics ->{
+          project: *
+        }
+      }%) demographics
+    JOIN
+      `scg-malloy-demos.retail_banking_demo.census_tracts_utah` tracts ON tracts.geo_id = demographics.geo_id
+    WHERE
+      ST_DWITHIN(tracts.tract_geom, bank_locations.location_geom, 8047)
+  """
+}
