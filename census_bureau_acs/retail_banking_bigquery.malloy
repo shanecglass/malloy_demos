@@ -40,3 +40,5 @@ sql: bank_location_demographics is {
       ST_DWITHIN(tracts.tract_geom, bank_locations.location_geom, 8047)
   """
 }
+
+source: slc_banks_demographics is from_sql(bank_location_demographics)
