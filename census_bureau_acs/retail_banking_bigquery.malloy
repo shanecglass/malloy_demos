@@ -1,7 +1,7 @@
-source: demographics is table('bigquery-public-data.census_bureau_acs.censustract_2020_5yr'){
+source: demographics is table('bigquery-public-data.census_bureau_acs.county_2020_5yr'){
   primary_key: geo_id
   where:
-    geo_id ~ '49035%'
+    geo_id ~ '49%'
 }
 
 source: bank_locations is table('scg-malloy-demos.retail_banking_demo.fdic_locations')
@@ -9,15 +9,15 @@ source: bank_locations is table('scg-malloy-demos.retail_banking_demo.fdic_locat
   primary_key: fdic_certificate_number
   where:
     state = 'UT'
-    AND county_fips_code = '49035'
 }
 
-source: utah_census_tracts is table('scg-malloy-demos.retail_banking_demo.census_tracts_utah')
+source: utah_counties is table('bigquery-public-data.geo_us_boundaries.counties')
 
 sql: bank_location_demographics is {
   select: """
     SELECT
       demographics.*,
+      counties.lsad_name,
       bank_locations.*
     FROM (
       %{
@@ -33,13 +33,40 @@ sql: bank_location_demographics is {
       }%) demographics
     JOIN
       (%{
-        utah_census_tracts -> {
+        utah_counties -> {
           project: *
         }
-      }%) tracts ON tracts.geo_id = demographics.geo_id
+      }%) counties ON counties.geo_id = demographics.geo_id
     WHERE
-      ST_DWITHIN(ST_GEOGPOINT(CAST(tracts.internal_point_lon AS FLOAT64), CAST(tracts.internal_point_lat AS FLOAT64)), ST_GEOGPOINT(bank_locations.longitude, bank_locations.latitude), 8047)
+      ST_WITHIN(ST_GEOGPOINT(CAST(counties.int_point_lon AS FLOAT64), CAST(counties.int_point_lat AS FLOAT64)), ST_GEOGPOINT(bank_locations.longitude, bank_locations.latitude)) = FALSE
   """
 }
 
-source: slc_banks_demographics is from_sql(bank_location_demographics)
+source: slc_banks_demographics is from_sql(bank_location_demographics) {
+  dimension:
+    county_name is lsad_name
+  measure: 
+    percent_worked_at_home is worked_at_home/total_pop * 100
+    labor_force_worked_at_home is worked_at_home/pop_in_labor_force * 100
+    avg_percent_income_spent_on_rent is percent_income_spent_on_rent.avg()
+  query: by_county_worked_at_home is {
+    aggregate:
+      labor_force_worked_at_home
+    group_by:
+      county_name
+    order_by:
+      labor_force_worked_at_home desc
+  }
+  query: where_work_from_home is {
+    aggregate: utah_worked_at_home IS avg(labor_force_worked_at_home)
+    nest: by_county_worked_at_home {
+      limit: 10
+    }
+  }
+  query: where_disposable_income is {
+    aggregate: avg_percent_income_spent_on_rent
+    group_by: county_name
+    limit: 10
+    order_by: avg_percent_income_spent_on_rent
+} 
+}
