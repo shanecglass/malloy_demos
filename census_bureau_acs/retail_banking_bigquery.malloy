@@ -1,3 +1,6 @@
+--! styles retail_banking.styles.json
+
+
 source: demographics_2015 is table('bigquery-public-data.census_bureau_acs.county_2015_5yr'){
   primary_key: geo_id
   where:
@@ -98,43 +101,49 @@ source: slc_banks_demographics is from_sql(bank_location_demographics) {
     labor_force_worked_at_home is worked_at_home_2020/pop_in_labor_force * 100
     banks_per_10000_residents is count(distinct fdic_certificate_number)/total_pop * 10000
 
+  query: work_from_home_by_county is{
+    aggregate: labor_force_worked_at_home_2020
+    group_by: county_name
+    order_by: labor_force_worked_at_home_2020 desc
+    limit: 10
+  }
+
   query: work_from_home is {
     aggregate: state_wide IS avg(labor_force_worked_at_home_2020)
-    nest: by_county is {
-      aggregate: labor_force_worked_at_home_2020
-      group_by: county_name
-      order_by: labor_force_worked_at_home_2020 desc
-      limit: 10
-    }
+    nest: work_from_home_by_county
+  }
+
+  query: disposable_income_by_county is{
+    aggregate: percent_income_spent_on_rent_2020
+        group_by: county_name
+        order_by: percent_income_spent_on_rent_2020
+        limit: 10
   }
 
   query: disposable_income is {
     aggregate: state_wide is avg(percent_income_spent_on_rent_2020)
-      nest: by_county is {
-        aggregate: percent_income_spent_on_rent_2020
-        group_by: county_name
-        order_by: percent_income_spent_on_rent_2020
-        limit: 10
-      }
+      nest: disposable_income_by_county
 }
 
+  query: home_values_by_county is {
+    aggregate: avg_median_home_price
+    group_by: county_name
+    order_by: avg_median_home_price desc
+    limit: 10
+  }
   query: home_values is {
     aggregate: state_wide is avg_median_home_price
-    nest: by_county is {
-        aggregate: avg_median_home_price
-        group_by: county_name
-        order_by: avg_median_home_price desc
-        limit: 10
-      }
+    nest: home_values_by_county
   }
 
-  query: home_value_growth_as_share_of_income_growth is {
-    aggregate: state_wide is home_value_percent_of_income_shift
-      nest: by_county is {
-        aggregate: home_value_percent_of_income_shift
+  query: home_value_growth_by_county is {
+    aggregate: home_value_percent_of_income_shift
         group_by: county_name
         limit: 10
         order_by: home_value_percent_of_income_shift
       }
+  query: home_value_growth_as_share_of_income_growth is {
+    aggregate: state_wide is home_value_percent_of_income_shift
+      nest: home_value_growth_by_county
   }
 }
