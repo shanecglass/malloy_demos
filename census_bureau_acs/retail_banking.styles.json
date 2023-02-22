@@ -1,0 +1,14 @@
+{
+  "home_values_by_county": {
+      "renderer": "bar_chart"
+  },
+  "home_value_growth_by_county": {
+      "renderer": "bar_chart"
+  },
+  "disposable_income_by_county": {
+      "renderer": "bar_chart"
+  },
+  "work_from_home_by_county": {
+      "renderer": "bar_chart"
+  }
+}
