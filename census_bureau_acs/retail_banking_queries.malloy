@@ -1,1 +1,13 @@
 import "retail_banking_bigquery.malloy"
+
+query: brick_and_mortar_decision_dashboard is slc_banks_demographics -> {
+  limit: 10
+  aggregate:
+    avg_change_bachelors_degree_or_higher_25_64
+    avg_change_income_per_capita
+    avg_change_home_median_value
+  nest: home_value_growth_as_share_of_income_growth
+  nest: work_from_home
+  nest: home_values
+  nest: disposable_income
+}

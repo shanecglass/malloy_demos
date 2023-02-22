@@ -1,7 +1,40 @@
-source: demographics is table('bigquery-public-data.census_bureau_acs.county_2020_5yr'){
+source: demographics_2015 is table('bigquery-public-data.census_bureau_acs.county_2015_5yr'){
   primary_key: geo_id
   where:
     geo_id ~ '49%'
+  measure:
+    owner_occupied_housing_units_median_value_2015 is owner_occupied_housing_units_median_value
+    avg_owner_occupied_housing_units_median_value_2015 is owner_occupied_housing_units_median_value_2015.avg()
+    bachelors_degree_or_higher_25_64_2015 is bachelors_degree_or_higher_25_64
+    percent_bachelors_degree_or_higher_25_64_2015 is bachelors_degree_or_higher_25_64_2015/pop_25_64 * 100
+    avg_bachelors_degree_or_higher_25_64_2015 is bachelors_degree_or_higher_25_64_2015.avg()
+    income_per_capita_2015 is income_per_capita
+    avg_income_per_capita_2015 is income_per_capita_2015.avg()
+    avg_median_home_price_2015 is owner_occupied_housing_units_median_value.avg()
+    worked_at_home_2015 is worked_at_home
+    percent_worked_at_home_2015 is worked_at_home/total_pop * 100
+    labor_force_worked_at_home_2015 is worked_at_home/pop_in_labor_force * 100
+    avg_percent_income_spent_on_rent_2015 is percent_income_spent_on_rent.avg()
+}
+
+source: demographics_2020 is table('bigquery-public-data.census_bureau_acs.county_2020_5yr'){
+  primary_key: geo_id
+  where:
+    geo_id ~ '49%'
+  measure:
+    owner_occupied_housing_units_median_value_2020 is owner_occupied_housing_units_median_value
+    avg_owner_occupied_housing_units_median_value_2020 is owner_occupied_housing_units_median_value_2020.avg()
+    bachelors_degree_or_higher_25_64_2020 is bachelors_degree_or_higher_25_64
+    percent_bachelors_degree_or_higher_25_64_2020 is bachelors_degree_or_higher_25_64_2020/pop_25_64 * 100
+    avg_bachelors_degree_or_higher_25_64_2020 is bachelors_degree_or_higher_25_64_2020.avg()
+    income_per_capita_2020 is income_per_capita
+    avg_income_per_capita_2020 is income_per_capita_2020.avg()
+    avg_median_home_price_2020 is owner_occupied_housing_units_median_value.avg()
+    worked_at_home_2020 is worked_at_home
+    percent_worked_at_home_2020 is worked_at_home_2020/total_pop * 100
+    labor_force_worked_at_home_2020 is worked_at_home_2020/pop_in_labor_force * 100
+    percent_income_spent_on_rent_2020 is percent_income_spent_on_rent
+    avg_percent_income_spent_on_rent_2020 is percent_income_spent_on_rent_2020.avg()
 }
 
 source: bank_locations is table('scg-malloy-demos.retail_banking_demo.fdic_locations')
@@ -16,7 +49,8 @@ source: utah_counties is table('bigquery-public-data.geo_us_boundaries.counties'
 sql: bank_location_demographics is {
   select: """
     SELECT
-      demographics.*,
+      demographics_2020.*,
+      demographics_2015.*,
       counties.lsad_name,
       bank_locations.*
     FROM (
@@ -27,46 +61,80 @@ sql: bank_location_demographics is {
       }%
       ) bank_locations,
       (%{
-        demographics ->{
+        demographics_2020 ->{
           project: *
         }
-      }%) demographics
+      }%) demographics_2020,
+      (%{
+        demographics_2015 ->{
+          project: *
+        }
+      }%) demographics_2015
     JOIN
       (%{
         utah_counties -> {
           project: *
         }
-      }%) counties ON counties.geo_id = demographics.geo_id
+      }%) counties ON counties.geo_id = demographics_2020.geo_id AND counties.geo_id = demographics_2015.geo_id
     WHERE
       ST_WITHIN(ST_GEOGPOINT(CAST(counties.int_point_lon AS FLOAT64), CAST(counties.int_point_lat AS FLOAT64)), ST_GEOGPOINT(bank_locations.longitude, bank_locations.latitude)) = FALSE
   """
 }
 
 source: slc_banks_demographics is from_sql(bank_location_demographics) {
+
   dimension:
     county_name is lsad_name
-  measure: 
-    percent_worked_at_home is worked_at_home/total_pop * 100
-    labor_force_worked_at_home is worked_at_home/pop_in_labor_force * 100
-    avg_percent_income_spent_on_rent is percent_income_spent_on_rent.avg()
-  query: by_county_worked_at_home is {
-    aggregate:
-      labor_force_worked_at_home
-    group_by:
-      county_name
-    order_by:
-      labor_force_worked_at_home desc
-  }
-  query: where_work_from_home is {
-    aggregate: utah_worked_at_home IS avg(labor_force_worked_at_home)
-    nest: by_county_worked_at_home {
+  measure:
+    avg_change_home_median_value is avg(owner_occupied_housing_units_median_value_2020 - owner_occupied_housing_units_median_value_2015)
+    avg_change_bachelors_degree_or_higher_25_64 is avg(percent_bachelors_degree_or_higher_25_64_2020 - percent_bachelors_degree_or_higher_25_64_2015)
+    avg_change_income_per_capita is avg(income_per_capita_2020 - income_per_capita_2015)
+    percent_avg_change_income_per_capita is avg((income_per_capita_2020 - income_per_capita_2015)/income_per_capita_2015)
+    percent_avg_change_home_median_value is avg((owner_occupied_housing_units_median_value_2020 - owner_occupied_housing_units_median_value_2015)/owner_occupied_housing_units_median_value_2015)
+    home_value_percent_of_income_shift is (avg_change_home_median_value/avg_change_income_per_capita )
+    avg_income_per_capita is income_per_capita.avg()
+    avg_median_home_price is owner_occupied_housing_units_median_value_2020.avg()
+    percent_worked_at_home is worked_at_home_2020/total_pop * 100
+    labor_force_worked_at_home is worked_at_home_2020/pop_in_labor_force * 100
+    banks_per_10000_residents is count(distinct fdic_certificate_number)/total_pop * 10000
+
+  query: work_from_home is {
+    aggregate: state_wide IS avg(labor_force_worked_at_home_2020)
+    nest: by_county is {
+      aggregate: labor_force_worked_at_home_2020
+      group_by: county_name
+      order_by: labor_force_worked_at_home_2020 desc
       limit: 10
     }
   }
-  query: where_disposable_income is {
-    aggregate: avg_percent_income_spent_on_rent
-    group_by: county_name
-    limit: 10
-    order_by: avg_percent_income_spent_on_rent
-} 
+
+  query: disposable_income is {
+    aggregate: state_wide is avg(percent_income_spent_on_rent_2020)
+      nest: by_county is {
+        aggregate: percent_income_spent_on_rent_2020
+        group_by: county_name
+        order_by: percent_income_spent_on_rent_2020
+        limit: 10
+      }
+}
+
+  query: home_values is {
+    aggregate: state_wide is avg_median_home_price
+    nest: by_county is {
+        aggregate: avg_median_home_price
+        group_by: county_name
+        order_by: avg_median_home_price desc
+        limit: 10
+      }
+  }
+
+  query: home_value_growth_as_share_of_income_growth is {
+    aggregate: state_wide is home_value_percent_of_income_shift
+      nest: by_county is {
+        aggregate: home_value_percent_of_income_shift
+        group_by: county_name
+        limit: 10
+        order_by: home_value_percent_of_income_shift
+      }
+  }
 }
