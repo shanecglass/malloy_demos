@@ -1,6 +1,5 @@
 --! styles retail_banking.styles.json
 
-
 source: demographics_2015 is table('bigquery-public-data.census_bureau_acs.county_2015_5yr'){
   primary_key: geo_id
   where:
