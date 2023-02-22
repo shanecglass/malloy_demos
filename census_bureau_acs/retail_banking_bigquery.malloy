@@ -85,7 +85,6 @@ sql: bank_location_demographics is {
 }
 
 source: slc_banks_demographics is from_sql(bank_location_demographics) {
-
   dimension:
     county_name is lsad_name
   measure:
@@ -110,7 +109,7 @@ source: slc_banks_demographics is from_sql(bank_location_demographics) {
 
   query: work_from_home is {
     aggregate: state_wide IS avg(labor_force_worked_at_home_2020)
-    nest: work_from_home_by_county
+    nest: by_county is work_from_home_by_county
   }
 
   query: disposable_income_by_county is{
@@ -122,7 +121,7 @@ source: slc_banks_demographics is from_sql(bank_location_demographics) {
 
   query: disposable_income is {
     aggregate: state_wide is avg(percent_income_spent_on_rent_2020)
-      nest: disposable_income_by_county
+      nest: by_county is disposable_income_by_county
 }
 
   query: home_values_by_county is {
@@ -133,7 +132,7 @@ source: slc_banks_demographics is from_sql(bank_location_demographics) {
   }
   query: home_values is {
     aggregate: state_wide is avg_median_home_price
-    nest: home_values_by_county
+    nest: by_county is home_values_by_county
   }
 
   query: home_value_growth_by_county is {
@@ -144,6 +143,6 @@ source: slc_banks_demographics is from_sql(bank_location_demographics) {
       }
   query: home_value_growth_as_share_of_income_growth is {
     aggregate: state_wide is home_value_percent_of_income_shift
-      nest: home_value_growth_by_county
+      nest: by_county is home_value_growth_by_county
   }
 }

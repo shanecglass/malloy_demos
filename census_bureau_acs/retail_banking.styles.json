@@ -1,4 +1,7 @@
 {
+  "by_county": {
+    "renderer": "bar_chart"
+  },
   "home_values_by_county": {
       "renderer": "bar_chart"
   },
