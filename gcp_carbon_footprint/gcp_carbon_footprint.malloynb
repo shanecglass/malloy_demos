@@ -1,0 +1,62 @@
+[
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "# Google Cloud Carbon Footprint \n\n1) Export your data\n2) Change source in gcp_carbon_footprint_data.malloy\n\n**Note**: This is highly correlated with usage. The more you use a product, the higher its total carbon footprint will be. The more you use a region, the higher its total carbon footprint will be. We'll show you how to normal with usage data later.",
+    "metadata": {}
+  },
+  {
+    "kind": 2,
+    "language": "malloy",
+    "value": "import \"gcp_carbon_footprint_data.malloy\"\nsource: carbon_data is carbon_footprint_export + {\n  measure:\n    total_carbon_footprint is sum(carbon_footprint_total_kgCO2e.location_based)\n    avg_carbon_footprint is avg(carbon_footprint_total_kgCO2e.location_based)\n    count_services is count(distinct service.id)\n    count_locations is count(distinct location.location)\n    count_projects is count(distinct project.id)\n    num_months is count(distinct usage_month)\n  \n  dimension:\n    start_month is min(usage_month)\n    product_name is service.description\n    usage_location is location.location\n}",
+    "metadata": {}
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "## By Month\n\nThis query looks at total carbon footprint for each month available in the dataset and returns the 5 months with the largest total carbon footprint",
+    "metadata": {}
+  },
+  {
+    "kind": 2,
+    "language": "malloy",
+    "value": "query: carbon_data -> {\n  group_by:\n    usage_month\n  aggregate:  \n    total_carbon_footprint\n  order_by: total_carbon_footprint\n  limit: 5\n}",
+    "metadata": {}
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "## By Product\n\nThis query looks at total carbon footprint for each product used in the billing account and returns the 5 products with the largest total carbon footprint. Keep in mind that this data is highly correlated with usage, so this likely represents the 5 most used products in the billing account.",
+    "metadata": {}
+  },
+  {
+    "kind": 2,
+    "language": "malloy",
+    "value": "query: carbon_data -> {\n  group_by:\n    product_name\n  aggregate:  \n    total_carbon_footprint\n}",
+    "metadata": {}
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "## By Location\n\nThis query looks at total carbon footprint for each location available in the dataset and returns the 5 locations with the largest total carbon footprint",
+    "metadata": {}
+  },
+  {
+    "kind": 2,
+    "language": "malloy",
+    "value": "query: carbon_data -> {\n  group_by:\n    usage_location\n  aggregate:  \n    total_carbon_footprint\n}",
+    "metadata": {}
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "## By product and location\n\nLet's dig a little deeper with Malloy's support for nested queries. This query breaks down product usage by location (either region or multi-region) to show the 5 regions with the highest total carbon footprint",
+    "metadata": {}
+  },
+  {
+    "kind": 2,
+    "language": "malloy",
+    "value": "query: carbon_data -> {\n  group_by:\n    product_name\n  aggregate:  \n    total_carbon_footprint\n  order_by: total_carbon_footprint desc\n  limit: 5\n  nest: by_location is {\n    group_by:\n      usage_location\n    aggregate:\n      total_carbon_footprint\n    order_by: total_carbon_footprint desc\n    limit: 5\n  }\n}",
+    "metadata": {}
+  }
+]

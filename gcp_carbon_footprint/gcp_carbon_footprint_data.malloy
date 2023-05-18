@@ -1,0 +1,1 @@
+source: carbon_footprint_export is table ('bigquery:gcp_carbon_footprint.carbon_footprint')
