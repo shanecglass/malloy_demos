@@ -1,0 +1,105 @@
+
+// Update this with the dataset and table name of your billing data
+source: billing_data_export is table ('bigquery:gcp_billing_demo.billing_demos') {
+  dimension:
+    credit_amount is credits.list.element.amount
+    credit_full_name is credits.list.element.full_name
+    credit_id is credits.list.element.id
+    credit_name is credits.list.element.name
+    credit_type is credits.list.element.type
+    tag_key is tags.list.element.key
+    tag_namespace is tags.list.element.namespace
+    tag_value is tags.list.element.value
+    invoice_month_string is invoice.`month`
+    project_id is project.id
+    project_number is project.`number`
+    service_description is service.description
+    service_id is service.id
+    sku_description is sku.description
+    usage_location is location.location
+    usage_unit is usage.unit
+    usage_pricing_unit is usage.pricing_unit
+
+  measure:
+    usage_amount is usage.amount
+    usage_pricing_amount is usage.amount_in_pricing_units
+}
+
+sql: billing_data_query is {
+  select:
+  """
+    SELECT
+      *,
+      DATE(CAST(REGEXP_EXTRACT(invoice_month_string, r'^([0-9]{4})[0-9]{2}$') AS INT64), CAST(REGEXP_EXTRACT(invoice_month_string, r'^[0-9]{4}([0-9]{2})$') AS INT64), 1) AS billing_month_date
+    FROM
+    (%{
+      billing_data_export -> {
+        project: *
+      }
+    }%)
+  """
+}
+source: billing_data_cleaned is from_sql(billing_data_query)
+
+source: billing_data is billing_data_cleaned + {
+  dimension:
+    billing_month is billing_month_date.month
+    billing_quarter is billing_month_date.quarter
+    billing_year is billing_month_date.year
+    product_usage_type is concat(service_description, ' - ', sku_description)
+    product_name is service_description
+    concat_for_key is concat(billing_month_date, project_number,service_id, ifnull(usage_location,''))
+
+  measure:
+    cash_cost is (ifnull(cost * 1000000,0))/1000000
+    credit_cost is (ifnull(credit_amount * 1000000,0))/1000000
+    avg_cash_cost is round(avg(cash_cost),2)
+    avg_credit_cost is round(avg(credit_cost),2)
+    total_cash_cost is round(sum(cash_cost),2)
+    total_credit_cost is round(sum(credit_cost),2)
+    avg_cash_and_credit_cost is round(avg(cash_cost + credit_cost),2)
+    total_cash_and_credit_cost is round(sum(cash_cost + credit_cost),2)
+    avg_usage_amount is round(avg(usage_amount),2)
+    total_usage_amount is round(sum(usage_amount),2)
+    avg_usage_pricing_amount is round(avg(usage_pricing_amount),2)
+    total_usage_pricing_amount is round(sum(usage_pricing_amount),2)
+
+  query: by_location is {
+    group_by:
+      location is usage_location
+    aggregate:
+      total_cash_and_credit_cost
+  }
+
+  query: by_month is {
+    group_by:
+      billing_month
+    aggregate:
+      total_cash_and_credit_cost
+  }
+
+  query: by_product is {
+    group_by:
+      product is service_description
+    aggregate:
+      total_cash_and_credit_cost
+  }
+
+  query: by_project is {
+    group_by:
+      project_id
+    aggregate:
+      total_cash_and_credit_cost
+  }
+
+  query: by_tag_value is {
+  group_by:
+    project_id
+    billing_quarter
+    cost_center is tag_value
+  aggregate:
+    total_cash_and_credit_cost
+  where:
+    tag_key = 'cost_center'
+  }
+}

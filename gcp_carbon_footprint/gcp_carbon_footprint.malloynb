@@ -2,13 +2,13 @@
   {
     "kind": 1,
     "language": "markdown",
-    "value": "# Google Cloud Carbon Footprint \n\n1) Export your data\n2) Change source in gcp_carbon_footprint_data.malloy\n\n**Note**: This is highly correlated with usage. The more you use a product, the higher its total carbon footprint will be. The more you use a region, the higher its total carbon footprint will be. We'll show you how to normal with usage data later.",
+    "value": "# Google Cloud Carbon Footprint \n\n1) [Export your data](https://cloud.google.com/carbon-footprint/docs/export). Don't forget the historical backfill!\n2) Change source in gcp_carbon_footprint_data.malloy\n\n**Note**: This is highly correlated with usage. The more you use a product, the higher its total carbon footprint will be. The more you use a region, the higher its total carbon footprint will be. We'll show you how to normal with usage data later.",
     "metadata": {}
   },
   {
     "kind": 2,
     "language": "malloy",
-    "value": "import \"gcp_carbon_footprint_data.malloy\"\nsource: carbon_data is carbon_footprint_export + {\n  measure:\n    total_carbon_footprint is sum(carbon_footprint_total_kgCO2e.location_based)\n    avg_carbon_footprint is avg(carbon_footprint_total_kgCO2e.location_based)\n    count_services is count(distinct service.id)\n    count_locations is count(distinct location.location)\n    count_projects is count(distinct project.id)\n    num_months is count(distinct usage_month)\n  \n  dimension:\n    start_month is min(usage_month)\n    product_name is service.description\n    usage_location is location.location\n}",
+    "value": "import \"gcp_carbon_footprint_data.malloy\"\nimport \"../gcp_billing/gcp_billing_data.malloy\"\n",
     "metadata": {}
   },
   {
@@ -32,7 +32,7 @@
   {
     "kind": 2,
     "language": "malloy",
-    "value": "query: carbon_data -> {\n  group_by:\n    product_name\n  aggregate:  \n    total_carbon_footprint\n}",
+    "value": "query: carbon_data -> {\n  group_by:\n    product_name is service_description \n  aggregate:  \n    total_carbon_footprint\n  limit: 5\n}",
     "metadata": {}
   },
   {
@@ -56,7 +56,37 @@
   {
     "kind": 2,
     "language": "malloy",
-    "value": "query: carbon_data -> {\n  group_by:\n    product_name\n  aggregate:  \n    total_carbon_footprint\n  order_by: total_carbon_footprint desc\n  limit: 5\n  nest: by_location is {\n    group_by:\n      usage_location\n    aggregate:\n      total_carbon_footprint\n    order_by: total_carbon_footprint desc\n    limit: 5\n  }\n}",
+    "value": "query: carbon_data -> {\n  group_by:\n    product_name is service_description \n  aggregate:  \n    total_carbon_footprint\n  order_by: total_carbon_footprint desc\n  limit: 5\n  nest: by_location is {\n    group_by:\n      usage_location\n    aggregate:\n      total_carbon_footprint\n    order_by: total_carbon_footprint desc\n    limit: 5\n  }\n}",
+    "metadata": {}
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "# Combining GCP billing data\n\nLet's now join in our [billing export](https://cloud.google.com/billing/docs/how-to/export-data-bigquery) data to normalize our carbon usage and better understand the impact of a specific location/region on our total carbon footprint. If you haven't done so already, set up your billing export to BigQuery and check out our [GCP Billing pattern](../gcp_billing/gcp_billing.malloynb) to learn more about how to analyze your GCP billing data. Once you have those setup, our data source already joins your billing data, so you can get started normalizing and analyzing your data",
+    "metadata": {}
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "## BigQuery \n\nThe usage unit of billing data is different for each product, so it's important we only aggregate usage data of the same usage unit **and** SKU description. This can be tricky, as consumption metrics are available in both `usage.unit` (which gives you the most precise data on how much of the service was used) and `usage.pricing_unit` (which converts the usage unit to the unit that is used to set pricing). Because the `usage_pricing_unit` is a conversion of `usage_unit` that is multiplication by a constant, we can disregard those units in our analysis.  Let's take a look at the possibilities for BigQuery:",
+    "metadata": {}
+  },
+  {
+    "kind": 2,
+    "language": "malloy",
+    "value": "query: carbon_data -> { \n  aggregate: \n    usage_unit is billing_data.usage_unit\n    sku_description is billing_data.sku_description\n  group_by: \n    usage_type is billing_data.service_description\n  where: \n  service_description = 'BigQuery'\n} -> {\n  project:\n    usage_type\n    sku_description\n    usage_unit\n}",
+    "metadata": {}
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "As you can see, there are 4 distinct usage units for BigQuery: `byte-seconds` for Active Storage, `byte-seconds` for Long Term Storage, `bytes` for Analysis, and `seconds` for both Analysis Slots (Internal). Because the Carbon Footprint dataset aggregates carbon footprint impact by product and location, we need to aggregate our billing data back up to that same level rather than the SKU and location level its published at. \n\n#### Aggregate billing data to match the carbon footprint data\nThis refines our existing source even further to predefine a query that calculates each SKU's percentage of the product's total cost. We will use this to estimate the carbon footprint of each SKU with a given product.",
+    "metadata": {}
+  },
+  {
+    "kind": 2,
+    "language": "malloy",
+    "value": "// Start here on Tuesday. How to safe divide?\n\nsource: carbon_billing_data_aggregate is carbon_data + {\n  dimension:\n    distinct_product_usage is concat(billing_data.sku_description, ' - ', billing_data.usage_unit)\n  query: sku_percent_of_total_bill is {\n    group_by:\n      service_description\n   aggregate:\n      service_cost is pick billing_data.total_cash_and_credit_cost when billing_data.total_cash_and_credit_cost != 0         else null\n  } -> {\n    aggregate: \n      service_cost\n      service_cost/all(service_cost)\n    group_by: service_description\n  }\n\nquery: carbon_billing_data_aggregate -> sku_percent_of_total_bill",
     "metadata": {}
   }
 ]
