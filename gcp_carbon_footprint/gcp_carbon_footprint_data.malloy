@@ -1,1 +1,41 @@
+import "../gcp_billing/gcp_billing_data.malloy"
 source: carbon_footprint_export is table ('bigquery:gcp_carbon_footprint.carbon_footprint')
+
+source: carbon_data_hold is carbon_footprint_export + {
+  dimension:
+    usage_month_date is usage_month
+    project_id is `project`.id
+    project_number is `project`.`number`
+    usage_location is location.location
+    service_id is service.id
+    service_description is service.description
+    start_month is min(usage_month)
+    concat_for_key is concat(usage_month, project_number,service_id, ifnull(usage_location,''))
+}
+
+source: carbon_data is carbon_data_hold + {
+  primary_key: concat_for_key
+  join_many: billing_data  ON
+    billing_account_id = billing_data.billing_account_id
+    AND project_id = billing_data.project_id
+    AND project_number = billing_data.project_number
+    AND service_id = billing_data.service_id
+    AND service_description = billing_data.product_name
+    AND usage_month_date = billing_data.billing_month
+    AND usage_location = billing_data.usage_location
+    AND concat_for_key = billing_data.concat_for_key
+
+  dimension:
+    product_usage_type is billing_data.product_usage_type
+  measure:
+    total_usage_amount is billing_data.total_usage_amount
+    avg_usage_amount is billing_data.avg_usage_amount
+    total_carbon_footprint is sum(carbon_footprint_total_kgCO2e.location_based)
+    avg_carbon_footprint is avg(carbon_footprint_total_kgCO2e.location_based)
+    count_services is count(distinct service.id)
+    count_locations is count(distinct location.location)
+    count_projects is count(distinct project.id)
+    num_months is count(distinct usage_month)
+    total_carbon_footprint_kgC02e_per_usage_amount is sum(total_carbon_footprint / total_usage_amount)
+    avg_carbon_footprint_per_usage_amount is avg(total_carbon_footprint / total_usage_amount)
+}

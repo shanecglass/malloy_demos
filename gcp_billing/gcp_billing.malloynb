@@ -1,0 +1,110 @@
+[
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "# Google Cloud Billing Data\n\nUse this notebook to get started analyzing your GCP billing data using Malloy. If you haven't setup a billing export already, follow the steps below and listed [in our documentation](https://cloud.google.com/billing/docs/how-to/export-data-bigquery-setup) to setup your billing export to BigQuery. This demo assumes you are using a [detailed billing export](https://cloud.google.com/billing/docs/how-to/export-data-bigquery-tables/detailed-usage). \n\n**Before you begin:**\n1) [Export your data](https://cloud.google.com/billing/docs/how-to/export-data-bigquery-setup)\n2) Change the source to match your dataset in gcp_billing_data.malloy\n",
+    "metadata": {}
+  },
+  {
+    "kind": 2,
+    "language": "malloy",
+    "value": "import \"gcp_billing_data.malloy\"",
+    "metadata": {}
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "## By Month\n\nThis query looks at the total cost for each month available in the dataset and returns costs the last 6 months where any usage occurred",
+    "metadata": {}
+  },
+  {
+    "kind": 2,
+    "language": "malloy",
+    "value": "query: billing_data -> by_month + {\n  where:  \n    usage_amount > 0\n  order_by: \n    billing_month desc\n  limit:\n    6\n} -> {\n  project:  \n    billing_month_year is concat(month(billing_month), ' - ', year(billing_month))\n    total_cash_and_credit_cost\n}\n\n// --! style bar_chart",
+    "metadata": {}
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "### Year over year analysis\n\nWe can also look at the year-over-year patterns of our costs. Let's start with a straight forward look at costs each year.",
+    "metadata": {}
+  },
+  {
+    "kind": 2,
+    "language": "malloy",
+    "value": "query: billing_data -> {\n  group_by:\n    month_of_year is month(billing_month)\n  aggregate:\n    total_cash_and_credit_cost\n  group_by:\n    billing_year is billing_month.year\n}\n\n// --! style line_chart",
+    "metadata": {}
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "we can also break this out to see the percent of change in total costs each month.",
+    "metadata": {}
+  },
+  {
+    "kind": 2,
+    "language": "malloy",
+    "value": "query: billing_data -> {\n  group_by:\n    month_of_year is month(billing_month)\n  nest: total_cash_and_credit_cost is {\n    aggregate:\n      costs_2021 is total_cash_and_credit_cost {where: billing_month = @2021}\n      costs_2022 is total_cash_and_credit_cost {where: billing_month = @2022} \n    } -> {\n      project: \n        costs_2021\n        costs_2022\n        percent_change is round((costs_2022 - costs_2021)/ifnull(costs_2021,0) * 100,2)\n    }\n}",
+    "metadata": {}
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "## By Product\n\nThis query looks at total cost for each product used in the billing account and returns the 5 products with the largest total cost in US Dollars as a bar chart",
+    "metadata": {}
+  },
+  {
+    "kind": 2,
+    "language": "malloy",
+    "value": "query: billing_data -> by_product + {\n  order_by:\n    total_cash_and_credit_cost desc\n  limit:\n    5\n}\n\n// --! style bar_chart",
+    "metadata": {}
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "### By Product breakdown\n\nBased on the results of our last query, let's dive further into the specific cost drivers of a certain product or products. This specific example looks SKUs are driving consumption for BigQuery and Compute Engine, but you can update the query to analyze whatever products you want. ",
+    "metadata": {}
+  },
+  {
+    "kind": 2,
+    "language": "malloy",
+    "value": "query: billing_data -> by_product + {\n  group_by: sku_description\n-- Change the name of the product here\n  where: service_description = 'Compute Engine'\n-- To analyze multiple products rather than just one, comment out the line above. Replace the product names in the line below and use it instead:\n--   where: service_description = 'Compute Engine' | 'bigQuery'\n} -> {\n  project: product, sku is sku_description, total_cash_and_credit_cost\n  order_by: total_cash_and_credit_cost desc\n  limit: 5\n}",
+    "metadata": {}
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "## By Location\n\nThis query looks at total cost in US Dollars for each location available in the dataset and returns the 5 locations with the largest cost",
+    "metadata": {}
+  },
+  {
+    "kind": 2,
+    "language": "malloy",
+    "value": "query: billing_data -> by_location + {\n  order_by:\n    total_cash_and_credit_cost desc\n  limit:\n    5\n}\n\n// --! style bar_chart",
+    "metadata": {}
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "## By tag value\nThe detailed billing export allows you to break down your costs by tags too. This can be really helpful if you use tags to track costs by cost center using your tag values. Below is an example of how you might use tags to track quarterly costs by cost center.",
+    "metadata": {}
+  },
+  {
+    "kind": 2,
+    "language": "malloy",
+    "value": "query: billing_data -> by_tag_value",
+    "metadata": {}
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "## Reporting dashboard\n\nLet's dig a little deeper with Malloy's support for nested queries. This query breaks down product usage by SKU and project to help you better understand consumption costs. ",
+    "metadata": {}
+  },
+  {
+    "kind": 2,
+    "language": "malloy",
+    "value": "query: billing_data -> {\n  aggregate: \n    total_cash_and_credit_cost\n  group_by:\n    product is service_description\n  where: usage_amount > 0\n  nest: by_location_bar_chart is {\n    group_by:\n      usage_location\n    aggregate:  \n      total_cash_and_credit_cost\n    order_by: \n      total_cash_and_credit_cost desc\n    limit:\n      5\n  } \n  nest: by_month_line_chart is {\n    group_by: \n      billing_month\n    aggregate:\n      total_cash_and_credit_cost\n    order_by:\n      total_cash_and_credit_cost desc\n    limit:\n      5\n  }\n  nest: by_project\n  \n  nest: by_sku is {\n    group_by:\n      sku_description\n      usage_pricing_unit\n    aggregate: \n      total_usage_pricing_amount\n      total_cash_and_credit_cost\n    order_by:\n      total_cash_and_credit_cost desc\n    limit:\n      5\n  }\n\n  nest: by_tag_value +{\n    limit: 5\n  }\n\n  nest: last_six_months is {\n    aggregate: \n      total_cash_and_credit_cost\n    group_by: \n      billing_month\n    order_by:\n      billing_month desc\n    limit: \n      6\n  } \n}\n\n// --! style dashboard\n",
+    "metadata": {}
+  }
+]
