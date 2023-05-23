@@ -68,7 +68,7 @@
   {
     "kind": 2,
     "language": "malloy",
-    "value": "query: billing_data -> by_product + {\n  group_by: sku_description\n-- Change the name of the product here\n  where: service_description = 'Compute Engine'\n-- To analyze multiple products rather than just one, comment out the line above. Replace the product names in the line below and use it instead:\n--   where: service_description = 'Compute Engine' | 'bigQuery'\n} -> {\n  project: product, sku is sku_description, total_cash_and_credit_cost\n  order_by: total_cash_and_credit_cost desc\n  limit: 5\n}",
+    "value": "query: billing_data -> by_product + {\n  group_by: sku_description\n-- Change the name of the product here\n  where: service_description = 'Compute Engine'\n-- To analyze multiple products rather than just one, comment out the line above. Replace the product names in the line below and use it instead:\n--   where: service_description = 'Compute Engine' | 'BigQuery'\n} -> {\n  project: product, sku is sku_description, total_cash_and_credit_cost\n  order_by: total_cash_and_credit_cost desc\n  limit: 5\n}",
     "metadata": {}
   },
   {
