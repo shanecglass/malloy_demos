@@ -30,13 +30,20 @@ sql: billing_data_query is {
   """
     SELECT
       *,
-      DATE(CAST(REGEXP_EXTRACT(invoice_month_string, r'^([0-9]{4})[0-9]{2}$') AS INT64), CAST(REGEXP_EXTRACT(invoice_month_string, r'^[0-9]{4}([0-9]{2})$') AS INT64), 1) AS billing_month_date
+      SAFE_CAST(
+        CONCAT(
+          LEFT(invoice_month_string, 4),
+          "-",
+          RIGHT(invoice_month_string, 2),
+          "-01"
+        )
+      as DATE FORMAT 'YYYY-MM-DD') AS billing_month_date
     FROM
-    (%{
-      billing_data_export -> {
-        project: *
-      }
-    }%)
+      (%{
+        billing_data_export -> {
+          project: *
+        }
+      }%)
   """
 }
 source: billing_data_cleaned is from_sql(billing_data_query)
@@ -46,8 +53,8 @@ source: billing_data is billing_data_cleaned + {
     billing_month is billing_month_date.month
     billing_quarter is billing_month_date.quarter
     billing_year is billing_month_date.year
-    product_usage_type is concat(service_description, ' - ', sku_description)
     product_name is service_description
+    product_usage_type is concat(product_name, ' - ', sku_description)
     concat_for_key is concat(billing_month_date, project_number,service_id, ifnull(usage_location,''))
 
   measure:

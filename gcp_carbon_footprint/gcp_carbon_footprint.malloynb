@@ -86,7 +86,13 @@
   {
     "kind": 2,
     "language": "malloy",
-    "value": "// Start here on Tuesday. How to safe divide?\n\nsource: carbon_billing_data_aggregate is carbon_data + {\n  dimension:\n    distinct_product_usage is concat(billing_data.sku_description, ' - ', billing_data.usage_unit)\n  query: sku_percent_of_total_bill is {\n    group_by:\n      service_description\n   aggregate:\n      service_cost is pick billing_data.total_cash_and_credit_cost when billing_data.total_cash_and_credit_cost != 0         else null\n  } -> {\n    aggregate: \n      service_cost\n      service_cost/all(service_cost)\n    group_by: service_description\n  }\n\nquery: carbon_billing_data_aggregate -> sku_percent_of_total_bill",
+    "value": "// Start here on Tuesday. How to safe divide?\n\nsource: carbon_billing_data_aggregate is carbon_data + {\n  dimension:\n    distinct_product_usage is concat(billing_data.sku_description, ' - ', billing_data.usage_unit)\n  measure:\n    service_cost is pick billing_data.total_cash_and_credit_cost when billing_data.total_cash_and_credit_cost != 0 else null\n  query: sku_percent_of_total_bill is {\n    group_by:\n      service_description\n   aggregate:\n      service_cost\n      percent_of_total is service_cost/all(service_cost)\n  }\n}\n\n",
+    "metadata": {}
+  },
+  {
+    "kind": 2,
+    "language": "malloy",
+    "value": "query: carbon_billing_data_aggregate -> sku_percent_of_total_bill{}",
     "metadata": {}
   }
 ]
