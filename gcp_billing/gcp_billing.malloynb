@@ -62,7 +62,7 @@
   {
     "kind": 1,
     "language": "markdown",
-    "value": "### By Product breakdown\n\nBased on the results of our last query, let's dive further into the specific cost drivers of a certain product or products. This specific example looks SKUs are driving consumption for BigQuery and Compute Engine, but you can update the query to analyze whatever products you want. ",
+    "value": "### Individual Product breakdown\n\nBased on the results of our last query, let's dive further into the specific cost drivers of a certain product or products. This specific example looks SKUs are driving consumption for BigQuery and Compute Engine, but you can update the query to analyze whatever products you want. ",
     "metadata": {}
   },
   {
